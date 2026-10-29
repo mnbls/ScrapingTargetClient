@@ -3,6 +3,9 @@
 Pencari calon klien pembuatan website dari Google Maps. Isi jenis usaha dan kota, hasilnya berupa tabel
 (nama usaha, telepon, website, alamat, rating, jumlah rating) yang bisa diunduh sebagai CSV.
 
+Kolom hasil: nama, telepon, website, jenis_website (tidak ada / sosmed / website), alamat, rating, jumlah_rating, link_maps.
+Usaha yang websitenya hanya Instagram, Facebook, linktr.ee, dan sejenisnya ditandai `sosmed` dan tetap dihitung sebagai calon klien.
+
 Dua mode:
 
 - **Tanpa API**: membuka Chrome/Edge lewat Playwright dan membaca Google Maps. Gratis, tapi lebih lambat dan
@@ -28,3 +31,4 @@ node scrape.mjs "salon" "Yogyakarta"            # mode Google API, butuh .env
 Opsi: `--tanpa-website` (hanya usaha tanpa website), `--maks=40` (jumlah usaha maksimum).
 
 Untuk mode Google API, salin `.env.example` menjadi `.env` dan isi `GOOGLE_MAPS_API_KEY`.
+

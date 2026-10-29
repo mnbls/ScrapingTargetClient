@@ -83,7 +83,8 @@
       <div class="opts">
         <label><input type="radio" name="mode" value="browser" checked> Tanpa API (gratis, memakai browser otomatis)</label>
         <label><input type="radio" name="mode" value="api"> Google API (lebih cepat, perlu API key)</label>
-        <label><input type="checkbox" id="tanpa"> Hanya yang belum punya website</label>
+        <label>Jumlah maks. <input type="number" id="maks" value="40" min="1" max="100" style="width:72px; padding:6px 8px; border-radius:8px; border:1px solid var(--line); background:var(--bg); color:var(--text)"></label>
+        <label><input type="checkbox" id="tanpa"> Hanya yang belum punya website sendiri (termasuk yang hanya sosmed)</label>
       </div>
       <p class="opts" id="modeNote" style="grid-column: 1 / -1; margin: 0">
         Jendela Chrome akan terbuka sendiri dan membaca Google Maps. Jangan ditutup sampai selesai. Sekitar 40 usaha butuh 2-3 menit.
@@ -163,9 +164,12 @@ function render(rows) {
       w.href = r.website; w.target = "_blank"; w.rel = "noopener";
       w.textContent = new URL(r.website).hostname.replace(/^www\./, "");
       web.append(w);
-    } else {
+    }
+    if (r.jenis_website !== "website") {
       const t = document.createElement("span");
-      t.className = "tag no"; t.textContent = "Belum ada";
+      t.className = "tag no";
+      t.textContent = r.website ? "Hanya sosmed" : "Belum ada";
+      if (r.website) t.style.marginLeft = "6px";
       web.append(t);
     }
     tr.append(web);
@@ -183,7 +187,7 @@ function csvCell(v) {
 }
 
 $("dl").addEventListener("click", () => {
-  const head = ["nama", "telepon", "website", "alamat", "rating", "jumlah_rating", "link_maps"];
+  const head = ["nama", "telepon", "website", "jenis_website", "alamat", "rating", "jumlah_rating", "link_maps"];
   const lines = [head, ...current.map((r) => head.map((h) => r[h]))].map((row) => row.map(csvCell).join(","));
   const blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
   const a = document.createElement("a");
@@ -233,12 +237,13 @@ $("searchForm").addEventListener("submit", async (e) => {
   $("result").classList.add("hidden");
   msg("Mencari, tunggu sebentar...");
   try {
-    const body = { jenis, kota, tanpaWebsite: $("tanpa").checked };
+    const body = { jenis, kota, maks: Number($("maks").value) || 40, tanpaWebsite: $("tanpa").checked };
     const rows = mode() === "browser" ? await runBrowserJob(body) : (await api("/api/search", body)).rows;
     current = rows;
     currentName = (jenis + "-" + kota).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
     const noWeb = rows.filter((r) => !r.website).length;
-    $("count").textContent = rows.length + " usaha ditemukan, " + noWeb + " belum punya website";
+    const sosmed = rows.filter((r) => r.jenis_website === "sosmed").length;
+    $("count").textContent = rows.length + " usaha ditemukan: " + noWeb + " belum punya website, " + sosmed + " hanya sosmed";
     render(rows);
     $("result").classList.toggle("hidden", rows.length === 0);
     msg(rows.length ? "" : "Tidak ada hasil. Coba kata kunci lain.");

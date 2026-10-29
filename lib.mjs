@@ -19,7 +19,7 @@ const FIELD_MASK = [
   "nextPageToken",
 ].join(",");
 
-export const CSV_HEADER = ["nama", "telepon", "website", "alamat", "rating", "jumlah_rating", "link_maps"];
+export const CSV_HEADER = ["nama", "telepon", "website", "jenis_website", "alamat", "rating", "jumlah_rating", "link_maps"];
 
 export function loadApiKey() {
   if (process.env.GOOGLE_MAPS_API_KEY) return process.env.GOOGLE_MAPS_API_KEY;
@@ -80,8 +80,26 @@ export async function search({ apiKey, jenis, kota, maks = 60, tanpaWebsite = fa
     jumlah_rating: p.userRatingCount ?? 0,
     link_maps: p.googleMapsUri ?? "",
   }));
-  if (tanpaWebsite) rows = rows.filter((r) => !r.website);
-  return rows.sort((a, b) => b.jumlah_rating - a.jumlah_rating);
+  return finalizeRows(rows, tanpaWebsite);
+}
+
+// Link ini bukan website milik usaha sendiri, jadi usahanya tetap calon klien.
+const NON_WEBSITE_HOSTS =
+  /(^|\.)(instagram\.com|facebook\.com|fb\.com|fb\.me|tiktok\.com|youtube\.com|youtu\.be|twitter\.com|x\.com|linktr\.ee|linktree\.com|beacons\.ai|lynk\.id|bio\.link|wa\.me|whatsapp\.com|shopee\.co\.id|tokopedia\.com|gofood\.co\.id|grab\.com|maps\.app\.goo\.gl|goo\.gl|bit\.ly)$/i;
+
+export function websiteKind(url) {
+  if (!url) return "tidak ada";
+  try {
+    return NON_WEBSITE_HOSTS.test(new URL(url).hostname) ? "sosmed" : "website";
+  } catch {
+    return "website";
+  }
+}
+
+export function finalizeRows(rows, tanpaWebsite) {
+  const withKind = rows.map((r) => ({ ...r, jenis_website: websiteKind(r.website) }));
+  const kept = tanpaWebsite ? withKind.filter((r) => r.jenis_website !== "website") : withKind;
+  return kept.sort((a, b) => b.jumlah_rating - a.jumlah_rating);
 }
 
 function csvCell(value) {

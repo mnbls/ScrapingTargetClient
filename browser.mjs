@@ -3,7 +3,7 @@
 
 import { chromium } from "playwright-core";
 import { join } from "node:path";
-import { dir } from "./lib.mjs";
+import { dir, finalizeRows } from "./lib.mjs";
 
 const PROFILE_DIR = join(dir, ".browser-profile");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -98,8 +98,7 @@ export async function searchBrowser({ jenis, kota, maks = 40, tanpaWebsite = fal
         // Lewati usaha yang gagal dibaca, lanjut ke berikutnya.
       }
     }
-    const out = tanpaWebsite ? rows.filter((r) => !r.website) : rows;
-    return out.sort((a, b) => b.jumlah_rating - a.jumlah_rating);
+    return finalizeRows(rows, tanpaWebsite);
   } finally {
     await context.close();
   }

@@ -47,7 +47,7 @@ try {
       });
   const out = join(dir, `${slug(jenis)}-${slug(kota)}.csv`);
   writeFileSync(out, toCsv(rows), "utf8");
-  console.log(`Selesai: ${rows.length} usaha (${rows.filter((r) => !r.website).length} belum punya website) -> ${out}`);
+  console.log(`Selesai: ${rows.length} usaha (${rows.filter((r) => r.jenis_website !== "website").length} belum punya website sendiri) -> ${out}`);
 } catch (err) {
   console.error("Gagal:", err.message);
   process.exit(1);
