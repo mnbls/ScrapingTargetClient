@@ -1,0 +1,30 @@
+﻿# ScrapingTargetClient
+
+Pencari calon klien pembuatan website dari Google Maps. Isi jenis usaha dan kota, hasilnya berupa tabel
+(nama usaha, telepon, website, alamat, rating, jumlah rating) yang bisa diunduh sebagai CSV.
+
+Dua mode:
+
+- **Tanpa API**: membuka Chrome/Edge lewat Playwright dan membaca Google Maps. Gratis, tapi lebih lambat dan
+  bisa kena CAPTCHA. Scraping langsung melanggar ketentuan layanan Google, pakai dengan risiko sendiri.
+- **Google API**: memakai Places API (New). Butuh API key dan billing aktif.
+
+## Pakai
+
+Butuh Node.js 18+ dan Chrome atau Edge.
+
+```bash
+npm install
+node server.mjs      # lalu buka http://localhost:3737 (di Windows: klik dua kali start.bat)
+```
+
+Versi terminal:
+
+```bash
+node scrape.mjs "salon" "Yogyakarta" --tanpa-api
+node scrape.mjs "salon" "Yogyakarta"            # mode Google API, butuh .env
+```
+
+Opsi: `--tanpa-website` (hanya usaha tanpa website), `--maks=40` (jumlah usaha maksimum).
+
+Untuk mode Google API, salin `.env.example` menjadi `.env` dan isi `GOOGLE_MAPS_API_KEY`.

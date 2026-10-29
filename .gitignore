@@ -1,0 +1,4 @@
+﻿.env
+.browser-profile/
+node_modules/
+*.csv
