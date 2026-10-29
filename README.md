@@ -12,7 +12,14 @@ Dua mode:
   bisa kena CAPTCHA. Scraping langsung melanggar ketentuan layanan Google, pakai dengan risiko sendiri.
 - **Google API**: memakai Places API (New). Butuh API key dan billing aktif.
 
-## Pakai
+## Cara cepat (Windows, tanpa coding)
+
+1. Pasang [Node.js](https://nodejs.org) versi LTS dan pastikan Chrome atau Edge ada di komputer.
+2. Di halaman GitHub repo ini, klik **Code > Download ZIP**, lalu ekstrak.
+3. Klik dua kali `start.bat`. Pertama kali akan memasang kebutuhan sendiri (1-2 menit), lalu browser terbuka di `http://localhost:3737`.
+4. Isi jenis usaha dan kota, klik **Cari**. Jendela hitam jangan ditutup selama dipakai.
+
+## Pakai (lewat terminal)
 
 Butuh Node.js 18+ dan Chrome atau Edge.
 
