@@ -19,7 +19,9 @@ const FIELD_MASK = [
   "nextPageToken",
 ].join(",");
 
-export const CSV_HEADER = ["nama", "telepon", "website", "jenis_website", "alamat", "rating", "jumlah_rating", "link_maps"];
+export const CSV_HEADER = [
+  "nama", "potensi", "skor", "telepon", "website", "jenis_website", "alamat", "rating", "jumlah_rating", "alasan", "link_maps",
+];
 
 export function loadApiKey() {
   if (process.env.GOOGLE_MAPS_API_KEY) return process.env.GOOGLE_MAPS_API_KEY;
@@ -96,10 +98,61 @@ export function websiteKind(url) {
   }
 }
 
+// Skor 0-100 seberapa besar peluang usaha menerima penawaran website, dari sinyal publik di Google Maps:
+//   kebutuhan (belum punya website) + bisa dihubungi + usaha aktif (ulasan) + reputasi (rating).
+// Ini perkiraan untuk menentukan urutan prospek, bukan jaminan.
+export function scoreLead(r) {
+  const alasan = [];
+  let skor = 0;
+
+  if (r.jenis_website === "tidak ada") {
+    skor += 45;
+    alasan.push("belum punya website");
+  } else if (r.jenis_website === "sosmed") {
+    skor += 35;
+    alasan.push("website hanya sosmed");
+  } else {
+    alasan.push("sudah punya website");
+  }
+
+  const digits = String(r.telepon ?? "").replace(/\D/g, "");
+  if (digits) {
+    skor += 15;
+    if (digits.startsWith("08") || digits.startsWith("628")) {
+      skor += 5;
+      alasan.push("ada nomor HP/WhatsApp");
+    } else {
+      alasan.push("ada nomor telepon");
+    }
+  } else {
+    alasan.push("tidak ada nomor kontak");
+  }
+
+  const ulasan = Number(r.jumlah_rating) || 0;
+  skor += Math.min(20, Math.round(Math.log10(ulasan + 1) * 7));
+  if (ulasan > 0) alasan.push(`${ulasan.toLocaleString("id-ID")} ulasan`);
+
+  // Rating dari sedikit ulasan kurang bisa dipercaya, jadi bobotnya naik bertahap sampai 20 ulasan.
+  const rating = Number(r.rating) || 0;
+  const bonusRating = rating >= 4.5 ? 15 : rating >= 4.0 ? 10 : rating >= 3.5 ? 5 : 0;
+  skor += Math.round(bonusRating * Math.min(1, ulasan / 20));
+  if (rating) alasan.push(`rating ${rating}`);
+
+  // Tanpa kontak sulit didekati; yang sudah punya website kebutuhannya kecil.
+  if (!digits) skor = Math.min(skor, 60);
+  if (r.jenis_website === "website") skor = Math.min(skor, 40);
+
+  const potensi = skor >= 70 ? "Tinggi" : skor >= 45 ? "Sedang" : "Rendah";
+  return { skor, potensi, alasan: alasan.join("; ") };
+}
+
 export function finalizeRows(rows, tanpaWebsite) {
-  const withKind = rows.map((r) => ({ ...r, jenis_website: websiteKind(r.website) }));
-  const kept = tanpaWebsite ? withKind.filter((r) => r.jenis_website !== "website") : withKind;
-  return kept.sort((a, b) => b.jumlah_rating - a.jumlah_rating);
+  const scored = rows.map((r) => {
+    const withKind = { ...r, jenis_website: websiteKind(r.website) };
+    return { ...withKind, ...scoreLead(withKind) };
+  });
+  const kept = tanpaWebsite ? scored.filter((r) => r.jenis_website !== "website") : scored;
+  return kept.sort((a, b) => b.skor - a.skor || b.jumlah_rating - a.jumlah_rating);
 }
 
 function csvCell(value) {

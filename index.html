@@ -49,6 +49,8 @@
   .tag { display: inline-block; padding: 1px 8px; border-radius: 99px; font-size: 12px; font-weight: 600; }
   .tag.no { background: var(--warn-bg); color: var(--warn-text); }
   .tag.yes { background: var(--ok-bg); color: var(--ok-text); }
+  .tag.low { background: var(--line); color: var(--muted); }
+  .why { color: var(--muted); font-size: 12px; margin-top: 4px; max-width: 220px; }
   .hidden { display: none !important; }
   @media (max-width: 720px) { form { grid-template-columns: 1fr; } }
 </style>
@@ -96,7 +98,12 @@
 
   <section class="card hidden" id="result">
     <div class="bar">
-      <strong id="count"></strong>
+      <div>
+        <strong id="count"></strong>
+        <label style="display:flex; gap:6px; align-items:center; margin-top:6px; color:var(--muted)">
+          <input type="checkbox" id="tinggi"> Tampilkan hanya potensi tinggi
+        </label>
+      </div>
       <div style="display:flex; gap:8px">
         <button id="dlx">Unduh Excel</button>
         <button class="ghost" id="dl">Unduh CSV</button>
@@ -105,7 +112,7 @@
     <div class="wrap">
       <table>
         <thead>
-          <tr><th>Nama usaha</th><th>Telepon</th><th>Website</th><th>Alamat</th><th>Rating</th><th>Jml rating</th></tr>
+          <tr><th>Nama usaha</th><th>Potensi</th><th>Telepon</th><th>Website</th><th>Alamat</th><th>Rating</th><th>Jml rating</th></tr>
         </thead>
         <tbody id="rows"></tbody>
       </table>
@@ -115,7 +122,7 @@
 
 <script>
 const $ = (id) => document.getElementById(id);
-let current = [], currentName = "hasil";
+let current = [], shown = [], currentName = "hasil";
 
 function msg(text, isErr = false) {
   $("msg").textContent = text;
@@ -152,6 +159,16 @@ function render(rows) {
     name.append(a);
     tr.append(name);
 
+    const pot = document.createElement("td");
+    const badge = document.createElement("span");
+    badge.className = "tag " + (r.potensi === "Tinggi" ? "yes" : r.potensi === "Sedang" ? "no" : "low");
+    badge.textContent = r.potensi + " · " + r.skor;
+    const why = document.createElement("div");
+    why.className = "why";
+    why.textContent = r.alasan;
+    pot.append(badge, why);
+    tr.append(pot);
+
     const tel = document.createElement("td");
     if (r.telepon) {
       const wa = document.createElement("a");
@@ -184,14 +201,24 @@ function render(rows) {
   }
 }
 
+function refresh() {
+  const count = (p) => current.filter((r) => r.potensi === p).length;
+  shown = $("tinggi").checked ? current.filter((r) => r.potensi === "Tinggi") : current;
+  $("count").textContent = current.length + " usaha: " + count("Tinggi") + " potensi tinggi, " +
+    count("Sedang") + " sedang, " + count("Rendah") + " rendah" +
+    (shown.length !== current.length ? " (ditampilkan " + shown.length + ")" : "");
+  render(shown);
+}
+$("tinggi").addEventListener("change", refresh);
+
 function csvCell(v) {
   const s = String(v ?? "");
   return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 }
 
 $("dl").addEventListener("click", () => {
-  const head = ["nama", "telepon", "website", "jenis_website", "alamat", "rating", "jumlah_rating", "link_maps"];
-  const lines = [head, ...current.map((r) => head.map((h) => r[h]))].map((row) => row.map(csvCell).join(","));
+  const head = ["nama", "potensi", "skor", "telepon", "website", "jenis_website", "alamat", "rating", "jumlah_rating", "alasan", "link_maps"];
+  const lines = [head, ...shown.map((r) => head.map((h) => r[h]))].map((row) => row.map(csvCell).join(","));
   const blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
@@ -204,7 +231,7 @@ $("dlx").addEventListener("click", async () => {
   $("dlx").disabled = true;
   try {
     const res = await fetch("/api/xlsx", {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rows: current }),
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rows: shown }),
     });
     if (!res.ok) throw new Error((await res.json()).error || "Gagal membuat file Excel");
     const a = document.createElement("a");
@@ -260,10 +287,7 @@ $("searchForm").addEventListener("submit", async (e) => {
     const rows = mode() === "browser" ? await runBrowserJob(body) : (await api("/api/search", body)).rows;
     current = rows;
     currentName = (jenis + "-" + kota).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-    const noWeb = rows.filter((r) => !r.website).length;
-    const sosmed = rows.filter((r) => r.jenis_website === "sosmed").length;
-    $("count").textContent = rows.length + " usaha ditemukan: " + noWeb + " belum punya website, " + sosmed + " hanya sosmed";
-    render(rows);
+    refresh();
     $("result").classList.toggle("hidden", rows.length === 0);
     msg(rows.length ? "" : "Tidak ada hasil. Coba kata kunci lain.");
   } catch (err) { msg(err.message, true); }

@@ -3,8 +3,23 @@
 Pencari calon klien pembuatan website dari Google Maps. Isi jenis usaha dan kota, hasilnya berupa tabel
 (nama usaha, telepon, website, alamat, rating, jumlah rating) yang bisa diunduh sebagai Excel (.xlsx) atau CSV.
 
-Kolom hasil: nama, telepon, website, jenis_website (tidak ada / sosmed / website), alamat, rating, jumlah_rating, link_maps.
+Kolom hasil: nama, potensi, skor, telepon, website, jenis_website (tidak ada / sosmed / website), alamat, rating, jumlah_rating, alasan, link_maps.
 Usaha yang websitenya hanya Instagram, Facebook, linktr.ee, dan sejenisnya ditandai `sosmed` dan tetap dihitung sebagai calon klien.
+
+## Skor potensi
+
+Setiap usaha diberi skor 0-100 (Tinggi >= 70, Sedang 45-69, Rendah < 45) dan hasil diurutkan dari yang paling
+mungkin menerima penawaran website. Kolom `alasan` menjelaskan asal skornya. Komponen skor:
+
+| Sinyal | Poin |
+|---|---|
+| Belum punya website / hanya sosmed | 45 / 35 |
+| Ada nomor HP/WhatsApp (nomor telepon biasa) | 20 (15) |
+| Jumlah ulasan (usaha aktif), skala log | sampai 20 |
+| Rating 4.5+ / 4.0+ / 3.5+ (bobot naik sampai 20 ulasan) | 15 / 10 / 5 |
+
+Batas: tanpa nomor kontak maksimal 60, sudah punya website maksimal 40. Ini perkiraan dari data publik untuk
+menentukan urutan prospek, bukan jaminan usaha akan setuju.
 
 Dua mode:
 
