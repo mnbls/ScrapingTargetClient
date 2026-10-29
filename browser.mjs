@@ -79,7 +79,8 @@ export async function searchBrowser({ jenis, kota, maks = 40, tanpaWebsite = fal
   const context = await launch();
   try {
     const page = context.pages()[0] ?? (await context.newPage());
-    const query = `${jenis} di ${kota}`;
+    // Tanpa kata "di": untuk sebagian kota Maps menafsirkannya sebagai pencarian rute.
+    const query = `${jenis} ${kota}`;
     onProgress?.("Membuka Google Maps...");
     await page.goto(`https://www.google.com/maps/search/${encodeURIComponent(query)}?hl=id`, {
       waitUntil: "domcontentloaded",
@@ -90,12 +91,16 @@ export async function searchBrowser({ jenis, kota, maks = 40, tanpaWebsite = fal
     const rows = [];
     for (const [i, link] of links.entries()) {
       onProgress?.(`Membaca detail usaha ${i + 1}/${links.length}`);
-      try {
-        const row = await readPlace(page, link);
-        await passChallenges(page, onProgress);
-        if (row.nama) rows.push({ ...row, link_maps: link });
-      } catch {
-        // Lewati usaha yang gagal dibaca, lanjut ke berikutnya.
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const row = await readPlace(page, link);
+          await passChallenges(page, onProgress);
+          if (row.nama) rows.push({ ...row, link_maps: link });
+          break;
+        } catch (err) {
+          // Coba sekali lagi, lalu lewati usaha itu dan lanjut ke berikutnya.
+          if (attempt === 1) console.warn(`Lewati ${link}: ${err.message.split("\n")[0]}`);
+        }
       }
     }
     return finalizeRows(rows, tanpaWebsite);
