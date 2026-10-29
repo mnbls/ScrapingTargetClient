@@ -2,3 +2,4 @@
 .browser-profile/
 node_modules/
 *.csv
+*.xlsx

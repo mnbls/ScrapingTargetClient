@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { dir, loadApiKey, saveApiKey, search } from "./lib.mjs";
 import { searchBrowser } from "./browser.mjs";
+import { buildXlsx } from "./xlsx.mjs";
 
 const PORT = Number(process.env.PORT ?? 3737);
 
@@ -18,7 +19,7 @@ function readJson(req) {
     let raw = "";
     req.on("data", (chunk) => {
       raw += chunk;
-      if (raw.length > 100_000) reject(new Error("Permintaan terlalu besar"));
+      if (raw.length > 2_000_000) reject(new Error("Permintaan terlalu besar"));
     });
     req.on("end", () => {
       try {
@@ -66,6 +67,18 @@ const server = createServer(async (req, res) => {
         tanpaWebsite: Boolean(tanpaWebsite),
       });
       return send(res, 200, { rows });
+    }
+    if (req.method === "POST" && req.url === "/api/xlsx") {
+      const { rows } = await readJson(req);
+      if (!Array.isArray(rows) || rows.length === 0) {
+        return send(res, 400, { error: "Tidak ada data untuk diunduh." });
+      }
+      const buffer = await buildXlsx(rows.slice(0, 500));
+      res.writeHead(200, {
+        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Length": buffer.length,
+      });
+      return res.end(buffer);
     }
     if (req.method === "POST" && req.url === "/api/search-browser") {
       if (activeJob) return send(res, 409, { error: "Masih ada pencarian yang berjalan." });

@@ -6,6 +6,7 @@ import { createInterface } from "node:readline/promises";
 import { join } from "node:path";
 import { dir, loadApiKey, search, toCsv, slug } from "./lib.mjs";
 import { searchBrowser } from "./browser.mjs";
+import { buildXlsx } from "./xlsx.mjs";
 
 async function ask(question) {
   const rl = createInterface({ input: process.stdin, output: process.stdout });
@@ -47,6 +48,7 @@ try {
       });
   const out = join(dir, `${slug(jenis)}-${slug(kota)}.csv`);
   writeFileSync(out, toCsv(rows), "utf8");
+  writeFileSync(out.replace(/\.csv$/, ".xlsx"), await buildXlsx(rows));
   console.log(`Selesai: ${rows.length} usaha (${rows.filter((r) => r.jenis_website !== "website").length} belum punya website sendiri) -> ${out}`);
 } catch (err) {
   console.error("Gagal:", err.message);

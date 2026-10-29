@@ -97,7 +97,10 @@
   <section class="card hidden" id="result">
     <div class="bar">
       <strong id="count"></strong>
-      <button class="ghost" id="dl">Unduh CSV</button>
+      <div style="display:flex; gap:8px">
+        <button id="dlx">Unduh Excel</button>
+        <button class="ghost" id="dl">Unduh CSV</button>
+      </div>
     </div>
     <div class="wrap">
       <table>
@@ -195,6 +198,22 @@ $("dl").addEventListener("click", () => {
   a.download = currentName + ".csv";
   a.click();
   URL.revokeObjectURL(a.href);
+});
+
+$("dlx").addEventListener("click", async () => {
+  $("dlx").disabled = true;
+  try {
+    const res = await fetch("/api/xlsx", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rows: current }),
+    });
+    if (!res.ok) throw new Error((await res.json()).error || "Gagal membuat file Excel");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(await res.blob());
+    a.download = currentName + ".xlsx";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } catch (err) { msg(err.message, true); }
+  finally { $("dlx").disabled = false; }
 });
 
 $("keyForm").addEventListener("submit", async (e) => {
