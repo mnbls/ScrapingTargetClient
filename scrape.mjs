@@ -1,4 +1,5 @@
-// Versi terminal. Pakai: node scrape.mjs "<jenis usaha>" "<kota>" [--tanpa-api] [--tanpa-website] [--maks=60]
+// Versi terminal. Pakai: node scrape.mjs "<jenis usaha, pisah koma>" "<kota>" [--daerah="Depok,Seturan"]
+//   [--min-ulasan=50] [--min-rating=4] [--tanpa-api] [--tanpa-website] [--maks=60]
 // Untuk versi tampilan web, jalankan start.bat (atau: node server.mjs).
 
 import { writeFileSync } from "node:fs";
@@ -26,26 +27,27 @@ if (!tanpaApi && !apiKey) {
   process.exit(1);
 }
 
-const jenis = positional[0] ?? (await ask("Jenis usaha (mis. restoran, salon, bengkel): "));
+const jenis = positional[0] ?? (await ask("Jenis usaha, pisahkan dengan koma (mis. kafe, kedai kopi): "));
 const kota = positional[1] ?? (await ask("Kota (mis. Yogyakarta): "));
 if (!jenis || !kota) {
   console.error("Jenis usaha dan kota wajib diisi.");
   process.exit(1);
 }
 
+const flag = (name) => flags.find((f) => f.startsWith(`--${name}=`))?.slice(name.length + 3);
+
 try {
-  const maks = Number(flags.find((f) => f.startsWith("--maks="))?.split("=")[1] ?? (tanpaApi ? 40 : 60));
-  const tanpaWebsite = flags.includes("--tanpa-website");
-  const rows = tanpaApi
-    ? await searchBrowser({ jenis, kota, maks, tanpaWebsite, onProgress: console.log })
-    : await search({
-        apiKey,
-        jenis,
-        kota,
-        maks,
-        tanpaWebsite,
-        onProgress: (n) => console.log(`  terkumpul ${n} usaha`),
-      });
+  const opts = {
+    jenis,
+    kota,
+    daerah: flag("daerah") ?? "",
+    minUlasan: Number(flag("min-ulasan")) || 0,
+    minRating: Number(flag("min-rating")) || 0,
+    maks: Number(flag("maks") ?? (tanpaApi ? 40 : 60)),
+    tanpaWebsite: flags.includes("--tanpa-website"),
+    onProgress: console.log,
+  };
+  const rows = tanpaApi ? await searchBrowser(opts) : await search({ apiKey, ...opts });
   const out = join(dir, `${slug(jenis)}-${slug(kota)}.csv`);
   writeFileSync(out, toCsv(rows), "utf8");
   writeFileSync(out.replace(/\.csv$/, ".xlsx"), await buildXlsx(rows));

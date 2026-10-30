@@ -3,8 +3,20 @@
 Pencari calon klien pembuatan website dari Google Maps. Isi jenis usaha dan kota, hasilnya berupa tabel
 (nama usaha, telepon, website, alamat, rating, jumlah rating) yang bisa diunduh sebagai Excel (.xlsx) atau CSV.
 
-Kolom hasil: nama, potensi, skor, telepon, website, jenis_website (tidak ada / sosmed / website), alamat, rating, jumlah_rating, alasan, link_maps.
-Usaha yang websitenya hanya Instagram, Facebook, linktr.ee, dan sejenisnya ditandai `sosmed` dan tetap dihitung sebagai calon klien.
+Kolom hasil: nama, potensi, skor, telepon, website, jenis_website (tidak ada / sosmed / website), jualan_online, kategori,
+harga, reservasi, badan_hukum, cabang_di_hasil, alamat, rating, jumlah_rating, alasan, link_maps.
+Usaha yang websitenya hanya Instagram, Facebook, linktr.ee, marketplace, dan sejenisnya ditandai `sosmed` dan tetap dihitung sebagai calon klien.
+
+Kolom tambahan dan batasannya:
+
+| Kolom | Sumber | Batasan |
+|---|---|---|
+| `jualan_online` | Link website di Maps | Hanya terdeteksi bila link mengarah ke Shopee, Tokopedia, Lazada, Blibli, Bukalapak, GoFood, atau GrabFood |
+| `kategori` | Places API (`primaryTypeDisplayName`), atau tombol kategori di halaman Maps | - |
+| `harga` | Places API (`priceLevel`), atau teks harga di bawah nama usaha | Sering kosong karena Maps tidak selalu menampilkan harga. Di mode tanpa API, "Rp ..." diubah ke label dengan batas perkiraan per orang: sampai 50 rb murah, 150 rb sedang, 400 rb mahal, di atasnya sangat mahal |
+| `reservasi` | Places API (`reservable`), atau tombol "Reservasi" di halaman Maps | Di mode API field ini masuk SKU yang lebih mahal, hapus dari `FIELD_MASK` di `lib.mjs` bila ingin hemat |
+| `badan_hukum` | Nama usaha | Hanya terdeteksi bila "PT" atau "CV" tertulis di nama |
+| `cabang_di_hasil` | Nama usaha | Hanya menghitung usaha bernama sama di hasil pencarian yang sama |
 
 ## Skor potensi
 
@@ -17,8 +29,21 @@ mungkin menerima penawaran website. Kolom `alasan` menjelaskan asal skornya. Kom
 | Ada nomor HP/WhatsApp (nomor telepon biasa) | 20 (15) |
 | Jumlah ulasan (usaha aktif), skala log | sampai 20 |
 | Rating 4.5+ / 4.0+ / 3.5+ (bobot naik sampai 20 ulasan) | 15 / 10 / 5 |
+| Tiap sinyal tambahan: 2+ cabang di hasil, PT/CV, harga mahal, menerima reservasi, jualan di marketplace | 5 |
 
-Batas: tanpa nomor kontak maksimal 60, sudah punya website maksimal 40. Ini perkiraan dari data publik untuk
+Skor akhir = skor dari data Maps x faktor jenis usaha. Jenis usaha diambil dari kategori Maps, atau dari kata pencarian
+bila kategori kosong. Kolom `skor_maps` menyimpan skor sebelum dikali.
+
+| Kelompok | Faktor | Contoh |
+|---|---|---|
+| Tinggi | 100% | Hotel, villa, klinik, dokter gigi, sekolah, kursus, wedding, katering, travel, rental, properti, kontraktor, konsultan |
+| Sedang | 80% | Restoran, kafe, kedai kopi, bakery, salon, barbershop, spa, gym, toko, bengkel |
+| Rendah | 50% | Warung, toko kelontong, fotokopi, tambal ban, laundry, angkringan |
+| Tidak dikenali | 80% | Kategori yang tidak ada di daftar |
+
+Daftar dan faktornya adalah penilaian umum, bukan hasil data. Ubah di `BUSINESS_GROUPS` di `lib.mjs`.
+
+Batas: tanpa nomor kontak maksimal 60, sudah punya website maksimal 40 (sebelum dikali faktor jenis). Ini perkiraan dari data publik untuk
 menentukan urutan prospek, bukan jaminan usaha akan setuju.
 
 Dua mode:
@@ -33,6 +58,41 @@ Dua mode:
 2. Di halaman GitHub repo ini, klik **Code > Download ZIP**, lalu ekstrak.
 3. Klik dua kali `start.bat`. Pertama kali akan memasang kebutuhan sendiri (1-2 menit), lalu browser terbuka di `http://localhost:3737`.
 4. Isi jenis usaha dan kota, klik **Cari**. Jendela hitam jangan ditutup selama dipakai.
+
+## Isian pencarian
+
+| Isian | Wajib | Keterangan |
+|---|---|---|
+| Jenis usaha | Ya | Boleh lebih dari satu, pisahkan dengan koma, mis. `kafe, kedai kopi, coffee shop` |
+| Kota | Ya | Mis. `Yogyakarta` |
+| Kecamatan atau daerah | Tidak | Boleh lebih dari satu, mis. `Depok, Seturan`. Kosong berarti seluruh kota |
+| Maks. per pencarian | Tidak | Batas usaha untuk setiap kombinasi jenis x daerah (API maks. 60, tanpa API maks. 100) |
+| Min. ulasan, min. rating | Tidak | Usaha di bawah batas dibuang. Usaha tanpa rating ikut terbuang bila min. rating diisi |
+
+Setiap jenis usaha dicari di setiap daerah, maksimal 20 kombinasi sekali cari. Usaha yang muncul di beberapa pencarian
+digabung jadi satu, dan kolom `sumber_kueri` mencatat pencarian pertama yang menemukannya. Di mode API, setiap
+kombinasi memakai request sendiri, jadi biaya ikut naik. Di mode tanpa API, setiap kombinasi menambah waktu 2-3 menit.
+
+## Tampilan hasil
+
+- **Formulir:** isian utama di atas, opsi lanjutan (cara mencari, maks., min. ulasan, min. rating, hanya tanpa website)
+  dalam bagian yang bisa dibuka-tutup. Di bawahnya tampil perkiraan jumlah pencarian dan waktu. Isian terakhir diingat
+  di browser.
+- **Progres:** progress bar dengan tahap pencarian, waktu berjalan, dan tombol **Batalkan** (mode tanpa API). Saat
+  dibatalkan, pencarian berhenti di langkah berikutnya dan hasil sementara tidak disimpan.
+- **Ringkasan:** jumlah usaha, per potensi, yang belum punya website sendiri, dan yang punya WhatsApp. Kartu potensi
+  bisa diklik untuk memfilter.
+- **Tabel:** klik judul kolom untuk mengurutkan (usaha, potensi, rating, ulasan). Filter: potensi, jenis website,
+  kategori, min. skor, punya WhatsApp, dan pencarian nama atau alamat. Tombol **Kolom** memilih kolom yang tampil
+  (disimpan di browser). Klik baris untuk membuka panel detail berisi rincian skor dan semua data.
+- **WhatsApp:** tombol WhatsApp hanya muncul untuk nomor HP (08xx atau 628xx). Telepon rumah hanya bisa disalin.
+- **Unduh:** Excel dan CSV mengikuti filter dan urutan yang sedang aktif. Excel dibatasi 500 baris.
+- **Buka file hasil:** tombol di kanan atas memuat file `.xlsx` atau `.csv` yang pernah diunduh dari aplikasi ini,
+  dengan tabel dan filter yang sama.
+- Di layar HP (lebar di bawah 760 px) tabel berubah menjadi daftar kartu. Tema terang dan gelap mengikuti pengaturan
+  perangkat.
+
+File tampilan: `index.html`, `style.css`, `app.js`. Pembaca file hasil: `hasil.mjs`.
 
 ## Pakai (lewat terminal)
 
@@ -50,7 +110,12 @@ node scrape.mjs "salon" "Yogyakarta" --tanpa-api
 node scrape.mjs "salon" "Yogyakarta"            # mode Google API, butuh .env
 ```
 
-Opsi: `--tanpa-website` (hanya usaha tanpa website), `--maks=40` (jumlah usaha maksimum).
+```bash
+node scrape.mjs "kafe, kedai kopi" "Yogyakarta" --daerah="Depok,Seturan" --min-ulasan=50 --min-rating=4
+```
+
+Opsi: `--tanpa-website` (hanya usaha tanpa website), `--maks=40` (jumlah usaha maksimum per pencarian),
+`--daerah=`, `--min-ulasan=`, `--min-rating=`.
 
 Untuk mode Google API, salin `.env.example` menjadi `.env` dan isi `GOOGLE_MAPS_API_KEY`.
 
