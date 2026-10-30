@@ -3,3 +3,8 @@
 node_modules/
 *.csv
 *.xlsx
+
+# aplikasi desktop (hasil build dan salinan)
+desktop/node_modules/
+desktop/app/
+desktop/dist/

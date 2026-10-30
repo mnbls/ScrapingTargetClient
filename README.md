@@ -59,6 +59,28 @@ Dua mode:
 3. Klik dua kali `start.bat`. Pertama kali akan memasang kebutuhan sendiri (1-2 menit), lalu browser terbuka di `http://localhost:3737`.
 4. Isi jenis usaha dan kota, klik **Cari**. Jendela hitam jangan ditutup selama dipakai.
 
+## Aplikasi desktop (Windows .exe)
+
+Folder `desktop/` membungkus aplikasi ini dengan Electron, jadi bisa dipasang seperti program biasa tanpa Node.js dan
+tanpa terminal. Jendela aplikasi menampilkan halaman yang sama. Mode tanpa API tetap butuh Chrome atau Edge di komputer.
+
+Membuat installer (butuh Node.js 18+, hanya sekali oleh pembuatnya):
+
+```bash
+cd desktop
+npm install
+npm run dist
+```
+
+Hasilnya `desktop/dist/Pencari Calon Klien Setup 1.0.0.exe` (sekitar 130 MB). Kirim file itu ke pengguna lain, lalu
+mereka tinggal menjalankannya. `npm run pack` hanya membuat folder `dist/win-unpacked` untuk uji coba, dan
+`npm start` menjalankan aplikasinya langsung tanpa installer.
+
+- API key dan profil browser disimpan di `%APPDATA%\Pencari Calon Klien`, bukan di folder instalasi.
+- Installer belum ditandatangani, jadi Windows SmartScreen bisa menampilkan peringatan. Pilih **More info > Run anyway**.
+- Memakai ikon bawaan Electron. Untuk ikon sendiri, isi `build.win.icon` di `desktop/package.json`.
+- `desktop/app/` adalah salinan file aplikasi yang dibuat otomatis oleh `npm run pack` dan `npm run dist`, jadi jangan diedit.
+
 ## Isian pencarian
 
 | Isian | Wajib | Keterangan |

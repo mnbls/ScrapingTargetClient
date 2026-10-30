@@ -3,9 +3,9 @@
 
 import { chromium } from "playwright-core";
 import { join } from "node:path";
-import { dir, buildQueries, placeKey, searchAll } from "./lib.mjs";
+import { dataDir, buildQueries, placeKey, searchAll } from "./lib.mjs";
 
-const PROFILE_DIR = join(dir, ".browser-profile");
+const PROFILE_DIR = join(dataDir, ".browser-profile");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function launch() {

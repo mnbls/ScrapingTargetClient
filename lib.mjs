@@ -5,7 +5,10 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 export const dir = dirname(fileURLToPath(import.meta.url));
-const ENV_FILE = join(dir, ".env");
+// Tempat file yang ditulis aplikasi (.env, profil browser). Aplikasi desktop mengisi APP_DATA_DIR
+// karena folder instalasinya tidak boleh ditulis.
+export const dataDir = process.env.APP_DATA_DIR || dir;
+const ENV_FILE = join(dataDir, ".env");
 const ENDPOINT = "https://places.googleapis.com/v1/places:searchText";
 const FIELD_MASK = [
   "places.displayName",

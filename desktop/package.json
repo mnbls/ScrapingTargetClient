@@ -1,0 +1,31 @@
+{
+  "name": "pencari-calon-klien",
+  "productName": "Pencari Calon Klien",
+  "version": "1.0.0",
+  "description": "Pencari calon klien jasa pembuatan website dari Google Maps",
+  "author": "Pencari Calon Klien",
+  "private": true,
+  "main": "main.cjs",
+  "scripts": {
+    "start": "node copy-app.mjs && electron .",
+    "pack": "node copy-app.mjs && electron-builder --win --dir",
+    "dist": "node copy-app.mjs && electron-builder --win nsis"
+  },
+  "dependencies": {
+    "exceljs": "^4.4.0",
+    "playwright-core": "^1.64.1"
+  },
+  "devDependencies": {
+    "electron": "^45.2.0",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "id.pencariklien.app",
+    "productName": "Pencari Calon Klien",
+    "asar": false,
+    "files": ["main.cjs", "app/**", "package.json"],
+    "directories": { "output": "dist" },
+    "win": { "target": "nsis", "signAndEditExecutable": false },
+    "nsis": { "oneClick": false, "allowToChangeInstallationDirectory": true, "perMachine": false }
+  }
+}
